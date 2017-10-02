@@ -30,7 +30,8 @@ class Experiment():
     def getCpuLoad(self):
         print ("getCpuLoad")
         shell_response = self.runCommand("uptime")
-        cpu_load = self.regExp('.*load average:\s*([^\n\r]*)', 0, shell_response).split( )
+        #cpu_load = self.regExp('.*load average:\s*([^\n\r]*)', 0, shell_response).split( )
+        cpu_load = re.findall('.*load average:\s*([^\n\r]*)', shell_response)[0].split( )
         load_average_first_minute = cpu_load[0]
         load_average_five_minutes = cpu_load[1]
         load_average_fifteen_minutes = cpu_load[2] 
@@ -43,8 +44,10 @@ class Experiment():
     def getCpuInfo(self):
         print("getCpuInfo")
         shell_response = self.runCommand("cat /proc/cpuinfo")
-        model_name = self.regExp('.*model name	:\s*([^\n\r]*)', 0, shell_response)
-        number_of_cores = self.regExp('.*cpu cores	:\s*([^\n\r]*)', 0, shell_response)
+        model_name = re.findall('model\s*name\s*:\s*([^\n\r]*)', shell_response)[0]
+        #model_name = self.regExp('model\s*name\s*:\s*([^\n\r]*)', 0, shell_response)
+        #number_of_cores = self.regExp('cpu\s*cores\s*:\s*(\d+)', 0, shell_response)
+        number_of_cores = re.findall('cpu\s*cores\s*:\s*(\d+)', shell_response)[0]
 
         load = cpuload.CpuLoad()
         first_cpu_data = load.get_data(int(number_of_cores))
@@ -53,42 +56,38 @@ class Experiment():
         total_load = load.calc_load(first_cpu_data, second_cpu_data, int(number_of_cores))
 
         for core in range(int(number_of_cores)):
-            print("load in core" + str(core) + " = " + str('%5.1f%%' % total_load[core]))
+            print("load in core" + str(core) + " = " + '%5.1f%%' % total_load[core])
         print("Cpu cores: " + number_of_cores)
         print("model_name: " + model_name)
 
 
     def getMemStatus(self):
         print ("getMemStatus")
-        shell_response = self.runCommand("free -h")
-        memory_list = self.regExp('.*Mem:\s*([^\n\r]*)', 0, shell_response).split( )
-        total_memory = memory_list[0]
-        used_memory = memory_list[1]
+        shell_response = self.runCommand("free -m")
+        #memory_list = self.regExp('.*Mem:\s*([^\n\r]*)', 0, shell_response).split( )
+        memory_list = re.findall('.*Mem:\s*([^\n\r]*)', shell_response)[0].split( )
+        total_memory = float(memory_list[0])
+        used_memory = float(memory_list[1])
         
-        calc_total_m = float(re.findall('[\d,.]+', total_memory)[0].replace(',', '.'))
-        calc_used_m = float(re.findall('[\d,.]+', used_memory)[0].replace(',', '.'))
-        free = 100 * (1 - calc_used_m/calc_total_m)
+        free = 100 * (1 - (used_memory/total_memory))
 
+        print("total_memory: " + str(total_memory))
+        print("used_memory: "+ str(used_memory))
         print("free " + str(free))
         print("free = {:.2f}".format(free) + "%")
-        print("calc_used_m = " + str(calc_used_m))
-        print("calc_total_m = " + str(calc_total_m))
 
-        print("Free memory is = " + str(calc_used_m/calc_used_m))
-        print("The total memory is: " + total_memory)
-        print("The used memory is: " + used_memory)
-        #print("Free memory is: " + float(used_memory)/float(total_memory))
+        print("The total memory is: " + str(total_memory))
+        print("The used memory is: " + str(used_memory))
 
     def runCommand(self, command):
         shell_response = subprocess.check_output(shlex.split(command)).decode('utf-8')
         return shell_response
-
    
-    def regExp(self, reg_expression, position, text):
-        regular = re.compile(reg_expression)
-        restult_text = re.findall(regular, text)[position]
-        return restult_text
 
+#    def regExp(self, reg_expression, position, text):
+#        regular = re.compile(reg_expression)
+#        restult_text = re.findall(regular, text)[position]
+#        return restult_text
 
 if __name__ == "__main__":
     Experiment().getUptime()
